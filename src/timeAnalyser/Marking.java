@@ -29,7 +29,7 @@ public class Marking {
 	 * @return If every index marked in the parameter marking is also marked in this marking.
 	 */
 	public boolean eclipses(Marking marking) {
-		return (marking.bitmap ^ (marking.bitmap & bitmap)) == 0;
+		return ((bitmap & marking.bitmap) ^ marking.bitmap) == 0;
 	}
 	
 	public boolean equals(Marking marking) {
@@ -37,7 +37,7 @@ public class Marking {
 	}
 	
 	/**
-	 * Marks the specified unmarked index.
+	 * Marks the specified index.
 	 * @param index the index to be marked
 	 */
 	public void mark(int index) {
@@ -51,7 +51,11 @@ public class Marking {
 	public void mark(Marking marking) {
 		bitmap |= marking.bitmap;
 	}
-	
+
+	/**
+	 * Unmarks the specified index.
+	 * @param index
+	 */
 	public void unmark(int index) {
 		bitmap ^= bitmap & (int)Math.pow(2, index);
 	}

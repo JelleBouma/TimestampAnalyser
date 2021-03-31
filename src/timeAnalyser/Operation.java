@@ -73,19 +73,19 @@ public class Operation {
 	 * The operation will match if any and all unmarked time-stamps match the time-stamp changes, at least on of which holds a time-stamp that can be used to determine when the operation happened.
 	 *
 	 * @param metadata the file meta-data to match against the operation
-	 * @param marking marking which indicates which time-stamps have been matched already
+	 * @param progressMarking marking which indicates which time-stamps have been matched already
 	 * @return if the time-stamps from the file meta-data match this operation for the provided marking.
 	 */
-	public boolean matches(FileMetadata metadata, Marking marking) {
+	public boolean matches(FileMetadata metadata, Marking progressMarking) {
 		if ((metadata.isDirectory() && appliesToDirectories == -1) || (!metadata.isDirectory() && appliesToDirectories == 1)) { // check if the file is a directory and if this operation is available to it.
 			return false;
 		}
-		if ((!hasCopying() && marking.eclipses(operationResult)) || (hasCopying() && marking.eclipses(copied))) { // checks if this operation can be matched to a time for the current marking
+		if ((!hasCopying() && progressMarking.eclipses(operationResult)) || (hasCopying() && progressMarking.eclipses(copied))) { // checks if this operation can be matched to a time for the current marking
 			return false;
 		}
 		Timestamp[] timestamps = metadata.getTimestamps().getAll();
 		for (int ii = 0; ii < effect.length; ii++) {
-			if (!effect[ii].match(timestamps[ii]) && !marking.isMarked(ii)) { // checks if the time-stamp can match the time-stamp change (has proper rounding)
+			if (!effect[ii].match(timestamps[ii]) && !progressMarking.isMarked(ii)) { // checks if the time-stamp can match the time-stamp change (has proper rounding)
 				return false;
 			}
 		}
@@ -93,7 +93,7 @@ public class Operation {
 			for (int jj = ii + 1; jj < effect.length; jj++) { // compare every pair of time-stamps and time-stamp changes
 				int changeComparison = effect[ii].compare(effect[jj]);
 				int timeComparison = timestamps[ii].compare(timestamps[jj]);
-				if (!marking.isMarked(ii) && !marking.isMarked(jj)) {
+				if (!progressMarking.isMarked(ii) && !progressMarking.isMarked(jj)) {
 					if ((changeComparison > 0 && timeComparison < 0) || (changeComparison < 0 && timeComparison > 0)) { // check if the time-stamps have to be bigger/smaller
 						return false;
 					}
