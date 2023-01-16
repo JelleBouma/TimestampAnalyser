@@ -14,8 +14,9 @@ import java.util.ArrayList;
  *
  */
 public class OperationList {
-	ArrayList<Operation> operations = new ArrayList<Operation>();
-	ArrayList<Operation> forgeryOperations = new ArrayList<Operation>();
+	ArrayList<Operation> operations = new ArrayList<>();
+	ArrayList<Operation> forgeryOperations = new ArrayList<>();
+	ArrayList<Operation> allOperations = new ArrayList<>();
 	
 	public OperationList() {
 		operations.add(new Operation("Create", ResultType.OP_START, ResultType.OP_START, ResultType.OP_START, ResultType.OP_START, ResultType.OP_START, ResultType.OP_START, ResultType.OP_START, ResultType.OP_START));
@@ -64,7 +65,9 @@ public class OperationList {
 		// The list of forgery operations, only forgery operations that can be matched to a time are included.
 		forgeryOperations.add(new Operation("Use of a time-stamp change tool", ResultType.ANY, ResultType.ANY, ResultType.OP_START, ResultType.ANY, ResultType.U, ResultType.U, ResultType.U, ResultType.U));
 		forgeryOperations.add(new Operation("Use of a time-stamp change tool which rounds on seconds", ResultType.R_ANY, ResultType.R_ANY, ResultType.OP_START, ResultType.R_ANY, ResultType.U, ResultType.U, ResultType.U, ResultType.U));
-		
+
+		allOperations.addAll(operations);
+		allOperations.addAll(forgeryOperations);
 	}
 	
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * 
@@ -23,14 +24,16 @@ public class TimeAnalyser {
 	static final int DEFAULT_ENTRY_SIZE = 1024;
 	static final Operation DELETION_OPERATION = new Operation("Delete", ResultType.U, ResultType.U, ResultType.U, ResultType.U, ResultType.U, ResultType.U, ResultType.U, ResultType.U);
 	static PrintWriter outputWriter;
+	private static Priority priority = Priority.REGULAR;
 	
 	/**
 	 * Main method, validates and parses the arguments and then delegates the work.
 	 * @param args
 	 * args[0] input file
-	 * args[2] output file
-	 * args[3] (optional) MFT entry size in bytes: default is 1024.
-	 * args[4] (optional) filter: either ``deleted'' to analyse only time-stamps of deleted files, ``irregular'' to find files with irregular time-stamps or ``all'' for everything (default).
+	 * args[1] output file
+	 * args[2] (optional) MFT entry size in bytes: default is 1024.
+	 * args[3] (optional) filter: either ``deleted'' to analyse only time-stamps of deleted files, ``irregular'' to find files with irregular time-stamps or ``all'' for everything (default).
+	 * args[4] (optional) priority: either ``equal'' to consider forgery operations always or ``regular'' to consider forgery operations only when regular operations can not be matched (default).
 	 * args[5] (optional) list of indexes or file names to be analysed separated by ``|''. By default every file in the MFT is analysed.
 	 * @throws IOException 
 	 */
@@ -61,26 +64,29 @@ public class TimeAnalyser {
 				throw new IllegalArgumentException(args[3] + " is not a valid filter, use 'deleted', 'irregular' or 'all'.");
 			}
 		}
-		boolean hasIndexFilter = false;
-		if (args.length > 4) {
-			hasIndexFilter = args[4].matches("[\\d]([\\d]*|(\\|[\\d]))+");
+		if (args.length > 4 && args[4].equals("equal")) {
+			priority = Priority.EQUAL;
 		}
+		boolean hasIndexFilter = false;
 		if (args.length > 5) {
+			hasIndexFilter = args[5].matches("[\\d]([\\d]*|(\\|[\\d]))+");
+		}
+		if (args.length > 6) {
 			throw new IllegalArgumentException("Too many parameters, use the following: input, output, filter, list of indexes or list of file names separated by |");
 		}
 		switch (args.length) {
 			case 4:		reader = new MFTReader(new File(args[0]), entrySize, filter);
 						break;
-			case 5:		if(hasIndexFilter) {
-							String[] stringIndexes = args[4].split("\\|");
-							ArrayList<Integer> indexes = new ArrayList<Integer>();
+			case 6:		if(hasIndexFilter) {
+							String[] stringIndexes = args[5].split("\\|");
+							ArrayList<Integer> indexes = new ArrayList<>();
 							for(String index : stringIndexes) {
 								indexes.add(Integer.parseInt(index));
 							}
 							reader = new MFTReader(new File(args[0]), entrySize, filter, indexes);
 						}
 						else {
-							reader = new MFTReader(new File(args[0]), entrySize, filter, args[4].split("\\|"));
+							reader = new MFTReader(new File(args[0]), entrySize, filter, args[5].split("\\|"));
 						}
 						break;
 			default: 	reader = new MFTReader(new File(args[0]), entrySize);
@@ -95,9 +101,9 @@ public class TimeAnalyser {
 			}
 		}
 		outputWriter = new PrintWriter(args[1]);
-		for (int ii = 0; ii < entries.length; ii++) {
-			if(entries[ii].signatureIntact() && entries[ii].hasSIAndFN() && (filter == null || filter != Filter.IRREGULAR || entries[ii].hasIrregularTimeStamps())) {
-				outputWriter.println(entries[ii]);
+		for (Entry entry : entries) {
+			if (entry.signatureIntact() && entry.hasSIAndFN() && (filter != Filter.IRREGULAR || entry.hasIrregularTimeStamps())) {
+				outputWriter.println(entry);
 			}
 		}
 		outputWriter.close();
@@ -166,23 +172,7 @@ public class TimeAnalyser {
 		while (!sequence.isFullyMatched()) { // While there are unmarked time-stamps left (there is a return within this loop in case nothing can be matched anymore).
 			FileMetadata metadata = sequence.getEarliestMetadata();
 			Marking prevMarking = sequence.getMarking();
-			ArrayList<ArrayList<Operation>> matchedOperations = new ArrayList<ArrayList<Operation>>(); // 2 dimensional arraylist, the operations are put in lists of operations that have the same effect on meta-data. The last list is kept empty.
-			matchedOperations.add(new ArrayList<Operation>());
-			for (Operation operation : OPERATION_LIST.operations) { // For every operation.
-				if (operation.matches(metadata, prevMarking)) { // If operation matches the time-stamps and associated marking.
-					for (ArrayList<Operation> timeMatchOperations : matchedOperations) { // For every list of matched operations.
-						if (timeMatchOperations.isEmpty()) { // If this list is empty (is the last list).
-							timeMatchOperations.add(operation);
-							matchedOperations.add(new ArrayList<Operation>());
-							break;
-						}
-						if (timeMatchOperations.get(0).equalsForMarking(operation, prevMarking)) { // If the operation has the same effect on meta-data as another one for this marking, put them in the same list
-							timeMatchOperations.add(operation);
-							break;
-						}
-					}
-				}
-			}
+			ArrayList<ArrayList<Operation>> matchedOperations = fillList(priority == Priority.REGULAR ? OPERATION_LIST.operations : OPERATION_LIST.allOperations, metadata, prevMarking);
 			if (matchedOperations.get(0).size() == 0) { // If no regular file operations can be matched, try to match forgery operations.
 				for (Operation operation : OPERATION_LIST.forgeryOperations) {
 					if (operation.matches(metadata, prevMarking)) {
@@ -222,4 +212,24 @@ public class TimeAnalyser {
 		}
 	}
 
+	public static ArrayList<ArrayList<Operation>> fillList(ArrayList<Operation> list, FileMetadata metadata, Marking prevMarking) {
+		ArrayList<ArrayList<Operation>> matchedOperations = new ArrayList<>(); // 2 dimensional arraylist, the operations are put in lists of operations that have the same effect on meta-data. The last list is kept empty.
+		matchedOperations.add(new ArrayList<>());
+		for (Operation operation : list) { // For every operation.
+			if (operation.matches(metadata, prevMarking)) { // If operation matches the time-stamps and associated marking.
+				for (ArrayList<Operation> timeMatchOperations : matchedOperations) { // For every list of matched operations.
+					if (timeMatchOperations.isEmpty()) { // If this list is empty (is the last list).
+						timeMatchOperations.add(operation);
+						matchedOperations.add(new ArrayList<>());
+						break;
+					}
+					if (timeMatchOperations.get(0).equalsForMarking(operation, prevMarking)) { // If the operation has the same effect on meta-data as another one for this marking, put them in the same list
+						timeMatchOperations.add(operation);
+						break;
+					}
+				}
+			}
+		}
+		return matchedOperations;
+	}
 }
