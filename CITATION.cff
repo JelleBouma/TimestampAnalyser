@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Bouma"
+  given-names: "Jelle"
+title: "Time-stamp Analyser"
+version: 1.0.1
+date-released: 2023-03-16
+url: "https://github.com/JelleBouma/TimestampAnalyser"
