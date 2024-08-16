@@ -22,7 +22,7 @@ The Time-stamp Analyser takes an MFT (Master File Table) as input and compares t
 
 
 # More information
-
-See my thesis for more information about my research into time-stamps: https://www.open.ou.nl/hjo/supervision/2019-jelle.bouma-bsc-thesis.pdf
+Paper regarding this method and tool here: https://dl.acm.org/doi/fullHtml/10.1145/3600160.3605027
+Even more information can be found in my thesis: https://www.open.ou.nl/hjo/supervision/2019-jelle.bouma-bsc-thesis.pdf
 
 Furthermore, any questions can be asked in the Issues section or in an e-mail to me.
