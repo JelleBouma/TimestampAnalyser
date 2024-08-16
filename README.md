@@ -11,6 +11,8 @@ To solve both these problems, the Time-stamp Analyser automatically analyses the
 
 # Usage
 The Time-stamp Analyser takes an MFT (Master File Table) as input and compares these to the known effects of file operations in `OperationList.java`
+It outputs a text file that contains possible operations that happened at the time-stamps.
+https://github.com/eddyvdaker/NTFS-Timestamp-Visualizer is a tool which visualizes this text file.
 
 ## Parameters
 - input MFT file
